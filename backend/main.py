@@ -12,6 +12,10 @@ import pickle
 from datetime import datetime
 import re
 import logging
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
+
+
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -36,7 +40,7 @@ app.add_middleware(
 )
 
 # Create temp directory for file uploads if it doesn't exist
-os.makedirs("temp", exist_ok=True)
+os.makedirs("static/temp", exist_ok=True)
 
 # Define data models
 class PatientData(BaseModel):
@@ -76,7 +80,7 @@ class PatientRecord(BaseModel):
     treatmentPlan: Optional[Dict[str, Any]] = None
 print("checkpoint1")
 # API Endpoints
-
+os.makedirs("temp", exist_ok=True)
 @app.get("/")
 async def root():
     print("Root endpoint called")  # Debug log
@@ -91,7 +95,7 @@ async def extract_prescription(file: UploadFile = File(...)):
         raise HTTPException(status_code=400, detail="Only PDF files are supported")
     
     # Save uploaded file temporarily
-    temp_file_path = f"temp/{file.filename}"
+    temp_file_path = f"staic/temp/{file.filename}"
     with open(temp_file_path, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
     
@@ -117,59 +121,87 @@ async def extract_prescription(file: UploadFile = File(...)):
         if os.path.exists(temp_file_path):
             os.remove(temp_file_path)
 print("checkpoint2")
-# 2. X-ray Analysis Endpoint
-@app.post("/api/analyze-xray")
-async def analyze_xray(file: UploadFile = File(...)):
-    print("Analyze X-ray endpoint called")  # Debug log
-    if not file.filename.lower().endswith(('.png', '.jpg', '.jpeg')):
-        print("Invalid file type for X-ray analysis")  # Debug log
-        raise HTTPException(status_code=400, detail="Only image files (PNG, JPG, JPEG) are supported")
-    
-    # Save uploaded file temporarily
-    temp_file_path = f"temp/{file.filename}"
+@app.post("/api/extract")
+async def extract_prescription(file: UploadFile = File(...)):
+    print("Extract prescription endpoint called")  # Debug log
+    if not file.filename.endswith('.pdf'):
+        print("Invalid file type for prescription extraction")  # Debug log
+        raise HTTPException(status_code=400, detail="Only PDF files are supported")
+
+    # ✅ Correct indentation
+    temp_file_path = f"static/temp/{file.filename}"
     with open(temp_file_path, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
-    
+
     try:
-        # Analyze X-ray image
-        logger.info(f"Analyzing X-ray image: {file.filename}")
-        print(f"Analyzing X-ray image: {file.filename}")  # Debug log
-        detections = analyze_xray_image(temp_file_path)
-        
-        logger.info(f"X-ray analysis results: {len(detections)} detections")
-        print(f"X-ray analysis results: {len(detections)} detections")  # Debug log
-        return {"detections": detections}
+        # Extract data from PDF
+        logger.info(f"Extracting data from PDF: {file.filename}")
+        print(f"Extracting data from PDF: {file.filename}")  # Debug log
+        patient_data = extract_medical_data(temp_file_path)
+        if not patient_data:
+            logger.error("Failed to extract data from PDF")
+            print("Failed to extract data from PDF")  # Debug log
+            raise HTTPException(status_code=500, detail="Failed to extract data from PDF")
+
+        logger.info(f"Successfully extracted data: {patient_data}")
+        print(f"Successfully extracted data: {patient_data}")  # Debug log
+        return patient_data
     except Exception as e:
-        logger.error(f"Error analyzing X-ray: {str(e)}")
-        print(f"Error analyzing X-ray: {str(e)}")  # Debug log
-        raise HTTPException(status_code=500, detail=f"Error analyzing X-ray: {str(e)}")
+        logger.error(f"Error processing PDF: {str(e)}")
+        print(f"Error processing PDF: {str(e)}")  # Debug log
+        raise HTTPException(status_code=500, detail=f"Error processing PDF: {str(e)}")
     finally:
         # Clean up temp file
         if os.path.exists(temp_file_path):
             os.remove(temp_file_path)
 
-# 3. Dental Photo Analysis Endpoint
-@app.post("/api/analyze-photo")
-async def analyze_photo(file: UploadFile = File(...)):
-    print(f"Received file: {file.filename}")  # ✅ Log received file
+
+# ✅ Serve images from "temp" instead of "static"
+app.mount("/static/temp", StaticFiles(directory="temp"), name="temp")
+
+@app.post("/api/analyze-xray")
+async def analyze_xray(file: UploadFile = File(...)):
+    print("Analyze X-ray endpoint called")  # Debug log
+
     if not file.filename.lower().endswith(('.png', '.jpg', '.jpeg')):
-        print("Invalid file type for photo analysis")  # ✅ Log invalid type
+        print("Invalid file type for X-ray analysis")  # Debug log
         raise HTTPException(status_code=400, detail="Only image files (PNG, JPG, JPEG) are supported")
-    
-    # Save uploaded file to check if it's received properly
-    temp_file_path = f"received_{file.filename}"
+
+    # ✅ Ensure static/temp exists
+    os.makedirs("static/temp", exist_ok=True)
+
+    # ✅ Save uploaded file in static/temp
+    temp_file_path = f"static/temp/{file.filename}"
     with open(temp_file_path, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
 
-    print(f"File saved at: {temp_file_path}")  # ✅ Log file save location
-
-    # Call analysis function
     try:
-        result = analyze_dental_photo(temp_file_path)
-        return result
+        # Analyze X-ray image (which also saves the processed image)
+        logger.info(f"Analyzing X-ray image: {file.filename}")
+        print(f"Analyzing X-ray image: {file.filename}")  # Debug log
+        detections = analyze_xray_image(temp_file_path)
+
+        # ✅ Save the processed image in static/temp
+        output_image_path = "static/temp/output.jpg"
+
+        logger.info(f"X-ray analysis results: {len(detections)} detections")
+        print(f"X-ray analysis results: {len(detections)} detections")  # Debug log
+
+        # ✅ Return detection details and image URL
+        return {
+            "detections": detections,
+            "image_url": f"http://localhost:8000/static/temp/output.jpg"
+        }
+
     except Exception as e:
-        print(f"Error analyzing dental photo: {str(e)}")  # ✅ Log errors
-        raise HTTPException(status_code=500, detail=f"Error analyzing dental photo: {str(e)}")
+        logger.error(f"Error analyzing X-ray: {str(e)}")
+        print(f"Error analyzing X-ray: {str(e)}")  # Debug log
+        raise HTTPException(status_code=500, detail=f"Error analyzing X-ray: {str(e)}")
+
+    finally:
+        # ✅ Remove the uploaded file after processing (optional)
+        if os.path.exists(temp_file_path):
+            os.remove(temp_file_path)
 
 # 4. Treatment Plan Generation Endpoint
 @app.post("/api/treatment-plan")
@@ -257,4 +289,3 @@ async def debug_model_paths():
 if __name__ == "__main__":
     print("Starting server...")  # Debug log
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
-

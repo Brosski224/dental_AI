@@ -147,8 +147,12 @@ export default function Schedule() {
               }}
               components={{
                 Day: ({ day, ...props }) => {
+                  // Ensure day is a valid Date object
+                  if (!(day instanceof Date)) {
+                    return null;
+                  }
                   // Render appointments for this day
-                  const appointments = getAppointmentsForDay(day)
+                  const appointments = getAppointmentsForDay(day);
                   return (
                     <div {...props} className="h-full w-full flex flex-col p-1 aria-selected:bg-teal-100">
                       <div className="text-right">{day.getDate()}</div>
@@ -169,7 +173,7 @@ export default function Schedule() {
                         ))}
                       </div>
                     </div>
-                  )
+                  );
                 },
               }}
             />

@@ -51,7 +51,8 @@ export default function NewPatientForm() {
     findings: { type: string; severity: string }[]
     recommendations: string
   }
-
+  const [xrayResultImage, setXrayResultImage] = useState<string | null>(null);
+  const [xrayAnalysisDetails, setXrayAnalysisDetails] = useState(null);
   const [photoAnalysisResult, setPhotoAnalysisResult] = useState<PhotoAnalysisResult | null>(null)
   const [treatmentPlan, setTreatmentPlan] = useState(null)
   const [xrayFile, setXrayFile] = useState(null)
@@ -130,7 +131,7 @@ export default function NewPatientForm() {
         return;
     }
 
-    setIsLoading(true);
+    setIsLoading((prev) => ({ ...prev, xray: true }));
 
     try {
         const formData = new FormData();
@@ -147,18 +148,22 @@ export default function NewPatientForm() {
             throw new Error("Failed to analyze X-ray");
         }
 
-        // Convert response to image URL
-        const imageBlob = await response.blob();
-        const imageUrl = URL.createObjectURL(imageBlob);
+        const data = await response.json(); // Get JSON response
 
-        setXrayResultImage(imageUrl); // Store result image
+        // ✅ Set the correct image path (served by FastAPI)
+        const imageUrl = "http://localhost:8000/static/temp/output.jpg";  
+        setXrayResultImage(imageUrl);
+
+        // ✅ Store analysis details (detections)
+        setXrayAnalysisDetails(data.detections);
     } catch (error) {
         console.error("Error analyzing X-ray:", error);
         alert("Failed to analyze X-ray");
     } finally {
-        setIsLoading(false);
+        setIsLoading((prev) => ({ ...prev, xray: false }));
     }
 };
+
 
 
   // 3. Analyze photo using DenseNet model
@@ -515,6 +520,33 @@ export default function NewPatientForm() {
                 </Button>
               )}
 
+{/* Analysis Results */}
+{xrayResultImage && (
+  <div className="space-y-2">
+    <h3 className="font-semibold">X-Ray Analysis Results</h3>
+
+    {/* Display the processed image */}
+    <img
+      src={xrayResultImage}
+      alt="Processed X-Ray"
+      className="w-full h-64 object-contain border rounded"
+    />
+
+    {/* Display detection details */}
+    {xrayAnalysisDetails && (
+      <div className="space-y-1">
+        {xrayAnalysisDetails.map((finding, index) => (
+          <div key={index} className="p-2 border rounded">
+            <Badge variant="secondary">{finding.class}</Badge>
+            <div>Confidence: {Math.round(finding.confidence * 100)}%</div>
+            <div>Coordinates: {finding.coordinates.join(", ")}</div>
+          </div>
+        ))}
+      </div>
+    )}
+  </div>
+)}
+
               {/* Analysis Results */}
               {xrayAnalysisResult && (
                 <div className="space-y-2">
@@ -621,4 +653,3 @@ export default function NewPatientForm() {
     </div>
   )
 }
-

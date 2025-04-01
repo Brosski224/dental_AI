@@ -67,10 +67,7 @@ export default function DentalDashboard() {
 
           <div className="flex items-center gap-4">
             <span className="hidden md:block text-sm text-gray-500">{currentDate}</span>
-            <button className="flex items-center gap-2 text-gray-600 hover:text-gray-900">
-              <LogOut className="w-5 h-5" />
-              <span className="hidden sm:inline">Logout</span>
-            </button>
+            
           </div>
         </div>
       </header>
