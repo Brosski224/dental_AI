@@ -59,7 +59,6 @@ This AI-powered tool assists dentists in diagnosing and planning treatments more
 
 - **Frontend:** Next.js, TypeScript, Tailwind CSS  
 - **Backend:** FastAPI  
-- **Database:** MongoDB Atlas  
 - **AI Models & Techniques:** YOLO, CLAHE, DENSENET, Mistral, RAG  
 
 ---
