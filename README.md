@@ -32,7 +32,7 @@ This AI-powered tool assists dentists in diagnosing and planning treatments more
 
 ## 🎥 Demo Video
 
-[![Watch the Demo](https://www.loom.com/embed/e3d7369324364a1cb3c291296f31488e?sid=302d196c-5d91-46b0-88d6-a92a7070fd8b/0.jpg)](https://www.loom.com/embed/e3d7369324364a1cb3c291296f31488e?sid=302d196c-5d91-46b0-88d6-a92a7070fd8b)
+[![Watch the Demo](./assets/dashboard.jpeg)](https://www.loom.com/embed/e3d7369324364a1cb3c291296f31488e?sid=302d196c-5d91-46b0-88d6-a92a7070fd8b)
 
 ---
 
@@ -42,7 +42,6 @@ This AI-powered tool assists dentists in diagnosing and planning treatments more
 ![Diagnosis Screenshot](./assets/dentalAI_1.png)
 
 ### 🔹 Analysis Output
-![Diagnosis Screenshot](./assets/dentalAI_1.png)
 ![Analysis Screenshot](./assets/dentalAI_2.png)
 
 ---
